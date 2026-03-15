@@ -15,22 +15,25 @@ router.post('/register', [
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
-const salt = await bcrypt.genSalt(10);
-const hashedPassword = await bcrypt.hash(password, salt);
 
-// Create user WITHOUT specifying role - let schema default to 'student'
-const user = new User({
-  name,
-  email,
-  password: hashedPassword
-});
+  try {
+    const { name, email, password } = req.body;
 
-await user.save();
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: 'User already exists' });
+    }
+
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Create user WITHOUT specifying role - let schema default to 'student'
     const user = new User({
       name,
       email,
-      password: hashedPassword,
-      role: 'user'
+      password: hashedPassword
     });
 
     await user.save();
