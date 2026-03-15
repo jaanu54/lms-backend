@@ -1,0 +1,93 @@
+### Register a User (Instructor)
+POST http://localhost:5000/api/auth/register
+Content-Type: application/json
+
+{
+    "name": "John Doe",
+    "email": "john@example.com",
+    "password": "password123",
+    "role": "instructor"
+}
+
+### Register a User (Student)
+POST http://localhost:5000/api/auth/register
+Content-Type: application/json
+
+{
+    "name": "Jane Smith",
+    "email": "jane@example.com",
+    "password": "password123",
+    "role": "student"
+}
+
+### Login with Instructor
+POST http://localhost:5000/api/auth/login
+Content-Type: application/json
+
+{
+    "email": "john@example.com",
+    "password": "password123"
+}
+
+### Login with Student
+POST http://localhost:5000/api/auth/login
+Content-Type: application/json
+
+{
+    "email": "jane@example.com",
+    "password": "password123"
+}
+
+### Get Profile (Replace YOUR_TOKEN with actual token from login)
+GET http://localhost:5000/api/auth/profile
+Authorization: Bearer YOUR_TOKEN_HERE
+
+### Create a Course (Instructor only - Replace YOUR_TOKEN)
+POST http://localhost:5000/api/courses
+Content-Type: application/json
+Authorization: Bearer YOUR_TOKEN_HERE
+
+{
+    "title": "MongoDB Masterclass",
+    "description": "Learn MongoDB from scratch - complete course for beginners",
+    "category": "Database",
+    "level": "beginner",
+    "price": 49.99
+}
+
+### Create Another Course
+POST http://localhost:5000/api/courses
+Content-Type: application/json
+Authorization: Bearer YOUR_TOKEN_HERE
+
+{
+    "title": "Node.js Advanced",
+    "description": "Advanced Node.js concepts and best practices",
+    "category": "Programming",
+    "level": "advanced",
+    "price": 79.99
+}
+
+### Get All Courses (Public)
+GET http://localhost:5000/api/courses
+
+### Get Single Course (Replace COURSE_ID)
+GET http://localhost:5000/api/courses/COURSE_ID_HERE
+
+### Update Course (Instructor only - Replace COURSE_ID and YOUR_TOKEN)
+PUT http://localhost:5000/api/courses/COURSE_ID_HERE
+Content-Type: application/json
+Authorization: Bearer YOUR_TOKEN_HERE
+
+{
+    "title": "MongoDB Masterclass - Updated",
+    "price": 59.99
+}
+
+### Enroll in Course (Student only - Replace COURSE_ID and YOUR_TOKEN)
+POST http://localhost:5000/api/courses/COURSE_ID_HERE/enroll
+Authorization: Bearer YOUR_TOKEN_HERE
+
+### Delete Course (Instructor only - Replace COURSE_ID and YOUR_TOKEN)
+DELETE http://localhost:5000/api/courses/COURSE_ID_HERE
+Authorization: Bearer YOUR_TOKEN_HERE
