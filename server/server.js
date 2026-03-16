@@ -5,6 +5,8 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const morgan = require('morgan');
+const reportsRoutes = require('./routes/reportsRoutes');  // ADD THIS
+
 
 dotenv.config();
 
@@ -16,6 +18,7 @@ const app = express();
 
 // Security headers
 app.use(helmet());
+app.use('/api/reports', reportsRoutes);  // ADD THIS
 
 // Logging
 app.use(morgan('dev'));
