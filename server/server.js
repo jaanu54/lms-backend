@@ -76,6 +76,21 @@ const authRoutes = require('./routes/authRoutes');
 
 // Use routes
 app.use('/api/auth', authRoutes);
+// ====================================
+// IMPORT ALL ROUTES
+// ====================================
+const authRoutes = require('./routes/authRoutes');
+const courseRoutes = require('./routes/courseRoutes');
+const studentRoutes = require('./routes/studentRoutes');
+const enrollmentRoutes = require('./routes/enrollmentRoutes');
+
+// ====================================
+// USE ALL ROUTES
+// ====================================
+app.use('/api/auth', authRoutes);
+app.use('/api/courses', courseRoutes);
+app.use('/api/students', studentRoutes);
+app.use('/api/enrollments', enrollmentRoutes);
 
 // ====================================
 // DASHBOARD & DATA ROUTES - ADDED NOW
