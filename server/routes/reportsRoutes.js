@@ -3,254 +3,189 @@ const router = express.Router();
 const Enrollment = require('../models/Enrollment');
 const Course = require('../models/Course');
 const Student = require('../models/Student');
-const { Parser } = require('json2csv');
 
 // Get enrollment reports
 router.get('/enrollments', async (req, res) => {
   try {
-    const { startDate, endDate } = req.query;
+    // Get counts
+    const totalEnrollments = await Enrollment.countDocuments();
+    const completedEnrollments = await Enrollment.countDocuments({ status: 'completed' });
+    const activeEnrollments = await Enrollment.countDocuments({ status: 'active' });
+    const droppedEnrollments = await Enrollment.countDocuments({ status: 'dropped' });
     
-    let query = {};
-    if (startDate || endDate) {
-      query.enrollmentDate = {};
-      if (startDate) query.enrollmentDate.$gte = new Date(startDate);
-      if (endDate) query.enrollmentDate.$lte = new Date(endDate);
+    // Get recent enrollments
+    const recentEnrollments = await Enrollment.find()
+      .populate('student', 'firstName lastName email')
+      .populate('course', 'title')
+      .sort({ enrollmentDate: -1 })
+      .limit(10);
+    
+    // Calculate monthly trends
+    const last6Months = [];
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date();
+      date.setMonth(date.getMonth() - i);
+      const month = monthNames[date.getMonth()];
+      
+      const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+      const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+      
+      const count = await Enrollment.countDocuments({
+        enrollmentDate: { $gte: startOfMonth, $lte: endOfMonth }
+      });
+      
+      last6Months.push({ month, count });
     }
     
-    const enrollments = await Enrollment.find(query)
-      .populate('student', 'firstName lastName email')
-      .populate('course', 'title price')
-      .sort('-enrollmentDate');
-    
-    // Calculate trends
-    const trends = {};
-    const byCourse = {};
-    
-    enrollments.forEach(enrollment => {
-      const date = enrollment.enrollmentDate.toISOString().split('T')[0];
-      trends[date] = (trends[date] || 0) + 1;
-      
-      const courseTitle = enrollment.course?.title || 'Unknown';
-      byCourse[courseTitle] = (byCourse[courseTitle] || 0) + 1;
-    });
-    
     res.json({
-      total: enrollments.length,
-      trends: {
-        labels: Object.keys(trends),
-        datasets: [{
-          label: 'Enrollments',
-          data: Object.values(trends),
-          borderColor: 'rgb(79, 70, 229)',
-          backgroundColor: 'rgba(79, 70, 229, 0.5)'
-        }]
-      },
-      byCourse: {
-        labels: Object.keys(byCourse),
-        datasets: [{
-          label: 'Enrollments by Course',
-          data: Object.values(byCourse),
-          backgroundColor: [
-            'rgba(79, 70, 229, 0.8)',
-            'rgba(16, 185, 129, 0.8)',
-            'rgba(245, 158, 11, 0.8)',
-            'rgba(239, 68, 68, 0.8)'
-          ]
-        }]
-      },
-      recent: enrollments.slice(0, 10).map(e => ({
-        studentName: e.student ? `${e.student.firstName} ${e.student.lastName}` : 'Unknown',
-        courseTitle: e.course?.title || 'Unknown',
-        date: e.enrollmentDate,
-        status: e.status
-      }))
+      success: true,
+      data: {
+        overview: {
+          total: totalEnrollments,
+          completed: completedEnrollments,
+          active: activeEnrollments,
+          dropped: droppedEnrollments,
+          completionRate: totalEnrollments ? (completedEnrollments / totalEnrollments) * 100 : 0
+        },
+        recentEnrollments,
+        trends: {
+          labels: last6Months.map(m => m.month),
+          data: last6Months.map(m => m.count)
+        }
+      }
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// Get completion rates
-router.get('/completion-rates', async (req, res) => {
-  try {
-    const courses = await Course.find().populate({
-      path: 'enrolledStudents',
-      model: 'Student'
-    });
-    
-    const byCourse = {
-      labels: [],
-      datasets: [{
-        label: 'Completion Rate (%)',
-        data: [],
-        backgroundColor: 'rgba(79, 70, 229, 0.8)'
-      }]
-    };
-    
-    const avgTime = {
-      labels: ['< 1 week', '1-2 weeks', '2-4 weeks', '> 4 weeks'],
-      datasets: [{
-        data: [0, 0, 0, 0],
-        backgroundColor: [
-          'rgba(79, 70, 229, 0.8)',
-          'rgba(16, 185, 129, 0.8)',
-          'rgba(245, 158, 11, 0.8)',
-          'rgba(239, 68, 68, 0.8)'
-        ]
-      }]
-    };
-    
-    courses.forEach(course => {
-      byCourse.labels.push(course.title);
-      // Mock completion rate (in real app, calculate from enrollments)
-      const rate = Math.floor(Math.random() * 40) + 60;
-      byCourse.datasets[0].data.push(rate);
-    });
-    
-    res.json({
-      byCourse,
-      avgTime
-    });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// Get student progress
-router.get('/student-progress', async (req, res) => {
-  try {
-    const { startDate, endDate } = req.query;
-    
-    const students = await Student.find().limit(20);
-    
-    const progress = students.map(student => ({
-      name: `${student.firstName} ${student.lastName}`,
-      course: 'Sample Course',
-      progress: Math.floor(Math.random() * 100),
-      lastActive: new Date(Date.now() - Math.random() * 86400000 * 7)
-    }));
-    
-    res.json(progress);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error('Enrollment reports error:', err);
+    res.status(500).json({ error: err.message });
   }
 });
 
 // Get revenue reports
 router.get('/revenue', async (req, res) => {
   try {
-    const { period } = req.query;
+    const enrollments = await Enrollment.find({ status: 'completed' })
+      .populate('course');
     
-    const trends = {
-      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-      datasets: [{
-        label: 'Revenue',
-        data: [1200, 1900, 3000, 5000, 4200, 5800],
-        borderColor: 'rgb(79, 70, 229)',
-        backgroundColor: 'rgba(79, 70, 229, 0.5)'
-      }]
-    };
+    let totalRevenue = 0;
+    const courseRevenue = {};
+    const monthlyRevenue = {};
     
-    const byCourse = {
-      labels: ['Course A', 'Course B', 'Course C', 'Course D'],
-      datasets: [{
-        data: [4500, 3200, 2800, 1900],
-        backgroundColor: [
-          'rgba(79, 70, 229, 0.8)',
-          'rgba(16, 185, 129, 0.8)',
-          'rgba(245, 158, 11, 0.8)',
-          'rgba(239, 68, 68, 0.8)'
-        ]
-      }]
-    };
+    enrollments.forEach(enrollment => {
+      if (enrollment.course && enrollment.course.price) {
+        const price = enrollment.course.price;
+        totalRevenue += price;
+        
+        // Course wise revenue
+        const courseTitle = enrollment.course.title;
+        courseRevenue[courseTitle] = (courseRevenue[courseTitle] || 0) + price;
+        
+        // Monthly revenue
+        const month = enrollment.enrollmentDate.toLocaleString('default', { month: 'short' });
+        monthlyRevenue[month] = (monthlyRevenue[month] || 0) + price;
+      }
+    });
     
     res.json({
-      trends,
-      byCourse,
-      total: 12400
+      success: true,
+      data: {
+        totalRevenue,
+        courseRevenue: Object.entries(courseRevenue).map(([course, revenue]) => ({
+          course,
+          revenue
+        })),
+        monthlyRevenue: Object.entries(monthlyRevenue).map(([month, revenue]) => ({
+          month,
+          revenue
+        }))
+      }
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error('Revenue reports error:', err);
+    res.status(500).json({ error: err.message });
   }
 });
 
-// Export data to CSV
-router.get('/export/:type', async (req, res) => {
+// Get completion reports
+router.get('/completion', async (req, res) => {
   try {
-    const { type } = req.params;
-    const { startDate, endDate } = req.query;
+    const courses = await Course.find();
+    const completionData = [];
     
-    let data = [];
-    let fields = [];
-    
-    switch(type) {
-      case 'enrollments':
-        const enrollments = await Enrollment.find()
-          .populate('student', 'firstName lastName email')
-          .populate('course', 'title');
-        
-        data = enrollments.map(e => ({
-          'Student Name': e.student ? `${e.student.firstName} ${e.student.lastName}` : 'Unknown',
-          'Student Email': e.student?.email || 'Unknown',
-          'Course': e.course?.title || 'Unknown',
-          'Enrollment Date': e.enrollmentDate.toISOString().split('T')[0],
-          'Status': e.status,
-          'Progress': `${e.progress || 0}%`
-        }));
-        
-        fields = ['Student Name', 'Student Email', 'Course', 'Enrollment Date', 'Status', 'Progress'];
-        break;
-        
-      case 'students':
-        const students = await Student.find();
-        data = students.map(s => ({
-          'Name': `${s.firstName} ${s.lastName}`,
-          'Email': s.email,
-          'Phone': s.phone || '',
-          'Status': s.status,
-          'Joined': s.createdAt.toISOString().split('T')[0]
-        }));
-        fields = ['Name', 'Email', 'Phone', 'Status', 'Joined'];
-        break;
-        
-      default:
-        return res.status(400).json({ message: 'Invalid export type' });
+    for (const course of courses) {
+      const totalEnrollments = await Enrollment.countDocuments({ course: course._id });
+      const completedEnrollments = await Enrollment.countDocuments({ 
+        course: course._id, 
+        status: 'completed' 
+      });
+      const activeEnrollments = await Enrollment.countDocuments({ 
+        course: course._id, 
+        status: 'active' 
+      });
+      
+      completionData.push({
+        courseId: course._id,
+        courseTitle: course.title,
+        totalEnrollments,
+        completedEnrollments,
+        activeEnrollments,
+        completionRate: totalEnrollments ? (completedEnrollments / totalEnrollments) * 100 : 0
+      });
     }
     
-    const json2csvParser = new Parser({ fields });
-    const csv = json2csvParser.parse(data);
-    
-    res.header('Content-Type', 'text/csv');
-    res.attachment(`${type}-export-${new Date().toISOString().split('T')[0]}.csv`);
-    res.send(csv);
-    
+    res.json({
+      success: true,
+      data: completionData
+    });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error('Completion reports error:', err);
+    res.status(500).json({ error: err.message });
   }
 });
 
-// Get dashboard analytics
-router.get('/dashboard-analytics', async (req, res) => {
+// Get student reports
+router.get('/students', async (req, res) => {
   try {
     const totalStudents = await Student.countDocuments();
-    const activeEnrollments = await Enrollment.countDocuments({ status: 'active' });
-    const completedEnrollments = await Enrollment.countDocuments({ status: 'completed' });
+    const activeStudents = await Student.countDocuments({ status: 'active' });
+    const inactiveStudents = await Student.countDocuments({ status: 'inactive' });
     
-    const completionRate = activeEnrollments + completedEnrollments > 0
-      ? Math.round((completedEnrollments / (activeEnrollments + completedEnrollments)) * 100)
-      : 0;
+    // Get students with enrollment counts
+    const students = await Student.find().limit(10);
+    const studentData = [];
+    
+    for (const student of students) {
+      const enrollmentCount = await Enrollment.countDocuments({ student: student._id });
+      const completedCount = await Enrollment.countDocuments({ 
+        student: student._id, 
+        status: 'completed' 
+      });
+      
+      studentData.push({
+        id: student._id,
+        name: `${student.firstName} ${student.lastName}`,
+        email: student.email,
+        enrollmentCount,
+        completedCount,
+        completionRate: enrollmentCount ? (completedCount / enrollmentCount) * 100 : 0
+      });
+    }
     
     res.json({
-      totalStudents,
-      activeEnrollments,
-      completionRate,
-      studentGrowth: 12,
-      enrollmentGrowth: 8,
-      revenue: 12400,
-      revenueGrowth: 15
+      success: true,
+      data: {
+        overview: {
+          total: totalStudents,
+          active: activeStudents,
+          inactive: inactiveStudents
+        },
+        students: studentData
+      }
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error('Student reports error:', err);
+    res.status(500).json({ error: err.message });
   }
 });
 
