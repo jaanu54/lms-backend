@@ -17,23 +17,45 @@ const Login = () => {
       ...prev,
       [name]: value
     }));
+    // Clear error when user types
+    if (error) setError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-     console.log('1. Form submitted');  // ADD THIS LINE
-  console.log('2. Email:', formData.email);  // ADD THIS LINE
-  console.log('3. Password:', formData.password);
+    
+    // Validation
+    if (!formData.email || !formData.password) {
+      setError('Please enter both email and password');
+      return;
+    }
+
+    console.log('1. Form submitted');
+    console.log('2. Email:', formData.email);
+    console.log('3. Password:', formData.password);
+    
     setLoading(true);
     setError('');
 
     try {
       const response = await authService.login(formData.email, formData.password);
-      console.log('Login success:', response);
-      navigate('/');
+      console.log('4. Login success:', response);
+      
+      // Redirect to dashboard
+      navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
-      console.error('Login error:', err);
+      console.error('5. Login error:', err);
+      
+      // Handle different error types
+      if (err.code === 'ERR_NETWORK') {
+        setError('Network error: Cannot connect to server. Please try again.');
+      } else if (err.response?.status === 401) {
+        setError('Invalid email or password');
+      } else if (err.response?.status === 404) {
+        setError('Login service not found');
+      } else {
+        setError(err.response?.data?.message || 'Login failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -70,11 +92,12 @@ const Login = () => {
           <div style={{
             backgroundColor: '#fee',
             color: '#c33',
-            padding: '10px',
+            padding: '12px',
             borderRadius: '5px',
             marginBottom: '20px',
             textAlign: 'center',
-            fontSize: '14px'
+            fontSize: '14px',
+            border: '1px solid #fcc'
           }}>
             {error}
           </div>
@@ -82,39 +105,63 @@ const Login = () => {
 
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: '20px' }}>
+            <label style={{
+              display: 'block',
+              marginBottom: '5px',
+              color: '#555',
+              fontSize: '14px',
+              fontWeight: '500'
+            }}>
+              Email Address
+            </label>
             <input
               type="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
-              placeholder="Email"
+              placeholder="Enter your email"
               required
+              disabled={loading}
               style={{
                 width: '100%',
                 padding: '12px',
-                border: '1px solid #ddd',
+                border: `1px solid ${error && !formData.email ? '#fcc' : '#ddd'}`,
                 borderRadius: '5px',
                 fontSize: '16px',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
+                outline: 'none',
+                transition: 'border-color 0.3s'
               }}
             />
           </div>
 
           <div style={{ marginBottom: '30px' }}>
+            <label style={{
+              display: 'block',
+              marginBottom: '5px',
+              color: '#555',
+              fontSize: '14px',
+              fontWeight: '500'
+            }}>
+              Password
+            </label>
             <input
               type="password"
               name="password"
               value={formData.password}
               onChange={handleChange}
-              placeholder="Password"
+              placeholder="Enter your password"
               required
+              disabled={loading}
               style={{
                 width: '100%',
                 padding: '12px',
-                border: '1px solid #ddd',
+                border: `1px solid ${error && !formData.password ? '#fcc' : '#ddd'}`,
                 borderRadius: '5px',
                 fontSize: '16px',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
+                outline: 'none',
+                transition: 'border-color 0.3s'
               }}
             />
           </div>
@@ -132,21 +179,39 @@ const Login = () => {
               fontSize: '16px',
               fontWeight: 'bold',
               cursor: loading ? 'not-allowed' : 'pointer',
-              opacity: loading ? 0.7 : 1
+              opacity: loading ? 0.7 : 1,
+              transition: 'opacity 0.3s'
             }}
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
 
-        <p style={{
-          textAlign: 'center',
+        <div style={{
           marginTop: '20px',
-          color: '#666',
-          fontSize: '14px'
+          padding: '15px',
+          backgroundColor: '#f5f5f5',
+          borderRadius: '5px',
+          border: '1px dashed #ccc'
         }}>
-          Demo: admin@example.com / password123
-        </p>
+          <p style={{
+            margin: '0 0 5px 0',
+            color: '#666',
+            fontSize: '14px',
+            fontWeight: 'bold'
+          }}>
+            Demo Credentials:
+          </p>
+          <p style={{
+            margin: '0',
+            color: '#333',
+            fontSize: '13px',
+            fontFamily: 'monospace'
+          }}>
+            Email: admin@example.com<br />
+            Password: password123
+          </p>
+        </div>
       </div>
     </div>
   );
