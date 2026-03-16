@@ -1,11 +1,12 @@
-
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// Use the Render backend URL directly - make sure this is correct
+const API_URL = 'https://lms-backend-api-427k.onrender.com/api';
 
 const api = axios.create({
   baseURL: API_URL,
-  withCredentials: true,
+  // Temporarily disable withCredentials for debugging
+  withCredentials: false, // CHANGE THIS FROM true TO false
   headers: {
     'Content-Type': 'application/json',
   },
@@ -18,6 +19,15 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // Log the full request URL for debugging
+    console.log('🚀 Request:', {
+      url: `${config.baseURL}${config.url}`,
+      method: config.method,
+      data: config.data,
+      withCredentials: config.withCredentials
+    });
+    
     return config;
   },
   (error) => Promise.reject(error)
@@ -25,8 +35,23 @@ api.interceptors.request.use(
 
 // Response interceptor to handle responses
 api.interceptors.response.use(
-  (response) => response.data,
+  (response) => {
+    console.log('✅ Response:', response.data);
+    return response.data;
+  },
   (error) => {
+    console.error('❌ Error:', {
+      message: error.message,
+      code: error.code,
+      response: error.response?.data,
+      status: error.response?.status,
+      config: {
+        url: error.config?.url,
+        method: error.config?.method,
+        withCredentials: error.config?.withCredentials
+      }
+    });
+    
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
