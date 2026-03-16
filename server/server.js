@@ -98,6 +98,99 @@ app.get('/', (req, res) => {
 });
 
 // ====================================
+// DEBUG & FIX ENDPOINTS - ADDED NOW
+// ====================================
+
+// 1. Check what users exist
+app.get('/api/debug/users', async (req, res) => {
+  try {
+    const User = require('./models/User');
+    const users = await User.find().select('email name role');
+    res.json({
+      success: true,
+      count: users.length,
+      users: users
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 2. FIX THE ADMIN USER - RUN THIS ONCE
+app.post('/api/debug/fix-admin', async (req, res) => {
+  try {
+    const User = require('./models/User');
+    const bcrypt = require('bcryptjs');
+    
+    // Hash the password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash('password123', salt);
+    
+    // Find and update or create admin
+    const user = await User.findOneAndUpdate(
+      { email: 'admin@example.com' },
+      {
+        name: 'Admin User',
+        email: 'admin@example.com',
+        password: hashedPassword,
+        role: 'admin'
+      },
+      { upsert: true, new: true } // Creates if doesn't exist
+    );
+    
+    // Verify the password works
+    const testPassword = await bcrypt.compare('password123', user.password);
+    
+    res.json({
+      success: true,
+      message: 'Admin user fixed!',
+      user: {
+        email: user.email,
+        name: user.name,
+        role: user.role
+      },
+      passwordWorks: testPassword,
+      loginWith: {
+        email: 'admin@example.com',
+        password: 'password123'
+      }
+    });
+  } catch (err) {
+    console.error('Fix admin error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 3. Check database connection info
+app.get('/api/debug/db-info', async (req, res) => {
+  try {
+    const User = require('./models/User');
+    
+    const dbState = mongoose.connection.readyState;
+    const states = ['disconnected', 'connected', 'connecting', 'disconnecting'];
+    
+    const userCount = await User.countDocuments();
+    const collections = await mongoose.connection.db.listCollections().toArray();
+    const collectionNames = collections.map(c => c.name);
+    
+    res.json({
+      database: {
+        status: states[dbState],
+        name: mongoose.connection.name,
+        host: mongoose.connection.host,
+        readyState: dbState
+      },
+      users: {
+        count: userCount
+      },
+      collections: collectionNames
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ====================================
 // 404 HANDLER
 // ====================================
 app.use((req, res) => {
@@ -136,4 +229,5 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Server running on port ${PORT}`);
   console.log(`✅ Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`✅ Allowed origins:`, allowedOrigins);
+  console.log(`✅ Debug endpoints available at /api/debug/users and /api/debug/fix-admin`);
 });
