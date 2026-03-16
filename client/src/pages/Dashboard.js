@@ -150,7 +150,7 @@ const Dashboard = () => {
           />
           <StatCard
             title="Completion Rate"
-            value={`${stats?.completionRate || 0}%`}
+            value={`${stats?.completionRate ? stats.completionRate.toFixed(1) : 0}%`}
             change="+3%"
             color="#ff9800"
           />
