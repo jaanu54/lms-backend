@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import authService from '../services/authService';
 import dashboardService from '../services/dashboardService';
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation(); // Add this for active link highlighting
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -69,47 +70,47 @@ const Dashboard = () => {
 
   return (
     <div style={styles.container}>
-      {/* Navigation Bar */}
+      {/* Navigation Bar with React Router Links */}
       <div style={styles.navbar}>
         <div style={styles.navLeft}>
           <h2 style={styles.logo}>LMS Platform</h2>
           <div style={navStyle}>
-            <a 
-              href="/dashboard" 
-              style={window.location.pathname === '/dashboard' ? activeNavStyle : navLinkStyle}
+            <Link 
+              to="/dashboard" 
+              style={location.pathname === '/dashboard' ? activeNavStyle : navLinkStyle}
             >
               Dashboard
-            </a>
-            <a 
-              href="/courses" 
-              style={window.location.pathname === '/courses' ? activeNavStyle : navLinkStyle}
+            </Link>
+            <Link 
+              to="/courses" 
+              style={location.pathname === '/courses' ? activeNavStyle : navLinkStyle}
             >
               Courses
-            </a>
-            <a 
-              href="/students" 
-              style={window.location.pathname === '/students' ? activeNavStyle : navLinkStyle}
+            </Link>
+            <Link 
+              to="/students" 
+              style={location.pathname === '/students' ? activeNavStyle : navLinkStyle}
             >
               Students
-            </a>
-            <a 
-              href="/enrollments" 
-              style={window.location.pathname === '/enrollments' ? activeNavStyle : navLinkStyle}
+            </Link>
+            <Link 
+              to="/enrollments" 
+              style={location.pathname === '/enrollments' ? activeNavStyle : navLinkStyle}
             >
               Enrollments
-            </a>
-            <a 
-              href="/reports" 
-              style={window.location.pathname === '/reports' ? activeNavStyle : navLinkStyle}
+            </Link>
+            <Link 
+              to="/reports" 
+              style={location.pathname === '/reports' ? activeNavStyle : navLinkStyle}
             >
               Reports
-            </a>
-            <a 
-              href="/profile" 
-              style={window.location.pathname === '/profile' ? activeNavStyle : navLinkStyle}
+            </Link>
+            <Link 
+              to="/profile" 
+              style={location.pathname === '/profile' ? activeNavStyle : navLinkStyle}
             >
               Profile
-            </a>
+            </Link>
           </div>
         </div>
         <div style={styles.navRight}>
