@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom'; // Added Link and useLocation
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import authService from '../services/authService';
 import dashboardService from '../services/dashboardService';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const location = useLocation(); // Add this for active link highlighting
+  const location = useLocation();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -70,7 +70,7 @@ const Dashboard = () => {
 
   return (
     <div style={styles.container}>
-      {/* Navigation Bar - FIXED WITH LINK COMPONENTS */}
+      {/* Navigation Bar */}
       <div style={styles.navbar}>
         <div style={styles.navLeft}>
           <h2 style={styles.logo}>LMS Platform</h2>
@@ -121,7 +121,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Rest of your dashboard content */}
+      {/* Main Content */}
       <div style={styles.mainContent}>
         <h1 style={styles.pageTitle}>Dashboard Overview</h1>
         
@@ -175,7 +175,181 @@ const Dashboard = () => {
   );
 };
 
-// Keep all your existing StatCard, ChartCard, EmptyState components and styles here
-// ... (copy from your existing file)
+// ====================================
+// COMPONENTS (WERE MISSING!)
+// ====================================
+
+const StatCard = ({ title, value, change, color }) => (
+  <div style={styles.statCard}>
+    <h3 style={styles.statTitle}>{title}</h3>
+    <div style={styles.statValue}>
+      <span style={{ ...styles.statNumber, color }}>{value}</span>
+      <span style={styles.statChange}>{change}</span>
+    </div>
+  </div>
+);
+
+const ChartCard = ({ title, children }) => (
+  <div style={styles.chartCard}>
+    <h3 style={styles.chartTitle}>{title}</h3>
+    {children}
+  </div>
+);
+
+const EmptyState = ({ message }) => (
+  <div style={styles.emptyState}>
+    {message}
+  </div>
+);
+
+// ====================================
+// STYLES OBJECT (WAS MISSING!)
+// ====================================
+
+const styles = {
+  container: {
+    minHeight: '100vh',
+    backgroundColor: '#f5f5f5'
+  },
+  loadingContainer: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100vh',
+    fontSize: '18px',
+    color: '#667eea'
+  },
+  navbar: {
+    backgroundColor: 'white',
+    padding: '15px 30px',
+    boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    position: 'sticky',
+    top: 0,
+    zIndex: 100
+  },
+  navLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '40px'
+  },
+  logo: {
+    margin: 0,
+    color: '#667eea',
+    fontSize: '20px'
+  },
+  navRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '20px'
+  },
+  userName: {
+    color: '#666'
+  },
+  logoutBtn: {
+    padding: '8px 16px',
+    backgroundColor: '#f44336',
+    color: 'white',
+    border: 'none',
+    borderRadius: '5px',
+    cursor: 'pointer',
+    fontSize: '14px'
+  },
+  mainContent: {
+    padding: '30px'
+  },
+  pageTitle: {
+    fontSize: '28px',
+    color: '#333',
+    marginBottom: '30px'
+  },
+  error: {
+    backgroundColor: '#fee',
+    color: '#c33',
+    padding: '15px',
+    borderRadius: '5px',
+    marginBottom: '20px'
+  },
+  statsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+    gap: '20px',
+    marginBottom: '30px'
+  },
+  statCard: {
+    backgroundColor: 'white',
+    padding: '20px',
+    borderRadius: '10px',
+    boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+  },
+  statTitle: {
+    fontSize: '14px',
+    color: '#666',
+    margin: '0 0 10px 0'
+  },
+  statValue: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  statNumber: {
+    fontSize: '28px',
+    fontWeight: 'bold'
+  },
+  statChange: {
+    fontSize: '12px',
+    color: '#4caf50',
+    backgroundColor: '#e8f5e8',
+    padding: '4px 8px',
+    borderRadius: '12px'
+  },
+  chartsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+    gap: '20px'
+  },
+  chartCard: {
+    backgroundColor: 'white',
+    padding: '20px',
+    borderRadius: '10px',
+    boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+  },
+  chartTitle: {
+    fontSize: '16px',
+    color: '#333',
+    margin: '0 0 20px 0'
+  },
+  tabContainer: {
+    display: 'flex',
+    gap: '10px',
+    marginBottom: '20px'
+  },
+  tab: {
+    padding: '8px 16px',
+    border: '1px solid #ddd',
+    backgroundColor: 'white',
+    borderRadius: '5px',
+    cursor: 'pointer',
+    fontSize: '14px'
+  },
+  activeTab: {
+    padding: '8px 16px',
+    border: 'none',
+    backgroundColor: '#667eea',
+    color: 'white',
+    borderRadius: '5px',
+    cursor: 'pointer',
+    fontSize: '14px'
+  },
+  emptyState: {
+    textAlign: 'center',
+    padding: '40px',
+    color: '#999',
+    backgroundColor: '#f9f9f9',
+    borderRadius: '5px'
+  }
+};
 
 export default Dashboard;
