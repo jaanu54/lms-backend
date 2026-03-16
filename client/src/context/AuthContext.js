@@ -1,48 +1,59 @@
-import { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
 import authService from '../services/authService';
 
 const AuthContext = createContext();
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    // Check if user is logged in on initial load
-    const currentUser = authService.getCurrentUser();
-    setUser(currentUser);
-    setLoading(false);
+    checkAuth();
   }, []);
 
+  const checkAuth = () => {
+    const token = localStorage.getItem('token');
+    const userData = authService.getCurrentUser();
+    
+    if (token && userData) {
+      setUser(userData);
+      setIsAuthenticated(true);
+    } else {
+      setUser(null);
+      setIsAuthenticated(false);
+    }
+    setLoading(false);
+  };
+
   const login = async (email, password) => {
-    const response = await authService.login(email, password);
-    setUser(response.user);
-    return response;
+    try {
+      const response = await authService.login(email, password);
+      setUser(response.user);
+      setIsAuthenticated(true);
+      return response;
+    } catch (error) {
+      throw error;
+    }
   };
 
   const logout = () => {
     authService.logout();
     setUser(null);
-  };
-
-  const value = {
-    user,
-    login,
-    logout,
-    isAuthenticated: !!user,
-    loading
+    setIsAuthenticated(false);
   };
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{
+      user,
+      loading,
+      isAuthenticated,
+      login,
+      logout,
+      checkAuth
+    }}>
       {children}
     </AuthContext.Provider>
   );
