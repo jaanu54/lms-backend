@@ -11,72 +11,46 @@ dotenv.config();
 const app = express();
 
 // ====================================
-// SECURITY & LOGGING MIDDLEWARE
+// MIDDLEWARE
 // ====================================
+
+// Security headers
 app.use(helmet());
+
+// Logging
 app.use(morgan('dev'));
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
+  windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100,
   message: 'Too many requests from this IP, please try again later.'
 });
 app.use('/api', limiter);
 
 // ====================================
-// FIXED CORS CONFIGURATION - THIS WILL WORK
+// CORS FIX - APPLIES TO ALL ROUTES
 // ====================================
 const allowedOrigins = [
   'https://sprightly-heliotrope-f68d9f.netlify.app',
   'http://localhost:3000'
 ];
 
-// Manual CORS middleware (most reliable)
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  
-  // Log incoming requests for debugging
-  console.log(`${req.method} request from origin:`, origin);
-  
-  // Check if origin is allowed
-  if (origin && allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    console.log('✅ Allowed origin:', origin);
-  } else if (!origin) {
-    // Allow requests with no origin (like Postman)
-    res.setHeader('Access-Control-Allow-Origin', '*');
-  }
-  
-  // Set other CORS headers
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Type');
-  res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours cache for preflight
-  
-  // Handle preflight OPTIONS requests IMMEDIATELY
-  if (req.method === 'OPTIONS') {
-    console.log('✅ Handling OPTIONS preflight request');
-    return res.status(200).end();
-  }
-  
-  next();
-});
-
-// Backup CORS using the package
 app.use(cors({
-  origin: function(origin, callback) {
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      console.log('❌ Blocked origin:', origin);
-      callback(new Error('Not allowed by CORS'));
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy does not allow access from this origin.';
+      return callback(new Error(msg), false);
     }
+    return callback(null, true);
   },
   credentials: true,
   optionsSuccessStatus: 200
 }));
+
+// Handle preflight for ALL routes
+app.options('*', cors());
 
 // Body parsing
 app.use(express.json({ limit: '10mb' }));
@@ -93,21 +67,22 @@ mongoose.connect(process.env.MONGODB_URI)
   });
 
 // ====================================
-// ROUTES
+// IMPORT ALL ROUTES
 // ====================================
-// Import routes
 const authRoutes = require('./routes/authRoutes');
 const courseRoutes = require('./routes/courseRoutes');
 const studentRoutes = require('./routes/studentRoutes');
 const enrollmentRoutes = require('./routes/enrollmentRoutes');
-const reportsRoutes = require('./routes/reportsRoutes');
+const reportsRoutes = require('./routes/reportsRoutes');  // ← ADD THIS LINE
 
-// Use routes
+// ====================================
+// USE ALL ROUTES
+// ====================================
 app.use('/api/auth', authRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/enrollments', enrollmentRoutes);
-app.use('/api/reports', reportsRoutes);
+app.use('/api/reports', reportsRoutes);  // ← ADD THIS LINE
 
 // ====================================
 // HEALTH CHECK
@@ -117,25 +92,22 @@ app.get('/api/health', (req, res) => {
     status: 'success',
     message: 'Server is running',
     timestamp: new Date().toISOString(),
-    cors: {
-      allowedOrigins,
-      currentOrigin: req.headers.origin || 'none'
-    }
-  });
-});
-
-app.get('/', (req, res) => {
-  res.json({
-    message: 'LMS API',
-    version: '1.0.0',
     endpoints: {
-      health: '/api/health',
       auth: '/api/auth',
       courses: '/api/courses',
       students: '/api/students',
       enrollments: '/api/enrollments',
-      reports: '/api/reports'
+      reports: '/api/reports'  // ← ADD THIS
     }
+  });
+});
+
+// Root route
+app.get('/', (req, res) => {
+  res.json({
+    message: 'LMS API',
+    version: '1.0.0',
+    status: 'running'
   });
 });
 
@@ -177,5 +149,5 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Server running on port ${PORT}`);
   console.log(`✅ Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`✅ Allowed origins:`, allowedOrigins);
-  console.log(`✅ CORS middleware active for all routes`);
+  console.log(`✅ Routes loaded: auth, courses, students, enrollments, reports`);
 });
